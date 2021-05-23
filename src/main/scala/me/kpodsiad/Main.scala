@@ -9,16 +9,21 @@ object Main extends App {
   case class Person(name: String, hr: Int, avg: Double)
 
   val yaml =
-    """name: Mark McGwire
-      |hr:   65
-      |avg:  0.278
+    """-
+      |  name: Mark McGwire
+      |  hr:   65
+      |  avg:  0.278
+      |-
+      |  name: Sammy Sosa
+      |  hr:   63
+      |  avg:  0.288
       |""".stripMargin
 
   @tailrec
-  def printEvents(in: YamlReader, ctx: ParserCtx): Unit =
+  def renderEvents(in: YamlReader, ctx: ParserCtx, acc: List[YamlEvent]): List[YamlEvent] =
     val (event, newCtx) = ParserImpl.getNextEvent(in, ctx)
-    println(event)
-    if event != StreamEnd then printEvents(in, newCtx) else ()
+    if event != StreamEnd then renderEvents(in, newCtx, acc :+ event ) else acc :+ event
 
-  printEvents(StringYamlReader(yaml), ParserCtx(ParseStreamStart))
+  val events = renderEvents(StringYamlReader(yaml), ParserCtx(ParseStreamStart), Nil)
+  events.foreach(println)
 }
