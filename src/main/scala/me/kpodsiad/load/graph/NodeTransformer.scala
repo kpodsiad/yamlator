@@ -1,6 +1,5 @@
 package me.kpodsiad.load.graph
-import me.kpodsiad.load.parser.YamlEvent
-import me.kpodsiad.load.parser._
+import me.kpodsiad.load.parser.{YamlEvent, _}
 
 import scala.annotation.tailrec
 
@@ -8,46 +7,30 @@ import scala.annotation.tailrec
 object NodeTransformer extends NodeTransform:
 
 
-  private def convertMappingToNode(events: List[YamlEvent], node: NodeMapping): NodeMapping = events match {
-    case Scalar(key) :: Scalar(value) :: tail =>  convertMappingToNode(tail, node.appendChild(key,value))
-    case _ | Nil => node // TODO - catch unexpected event
-  }
-
-  private def convertSequenceToNode(events: List[YamlEvent], node: NodeSequence): NodeSequence = events match  {
-    case (MappingStart :: tail) => {
-      val (mappingEvents, restEvents) = tail.span( _ != MappingEnd)
-      val mappingNode = convertMappingToNode(mappingEvents, NodeMapping.empty)
-      convertSequenceToNode(restEvents, node.appendChild(mappingNode))
-    }
-    case MappingEnd :: tail => convertSequenceToNode(tail, node)
-    case Nil => node
-  }
-
-  private def convertDocumentToNode(events: List[YamlEvent]): List[Node] = events match  {
-    case (SequenceStart :: tail) => {
-      val (sequenceEvents, restEvents) = tail.span( _ != SequenceEnd)
-      val sequenceNode = convertSequenceToNode(sequenceEvents, NodeSequence.empty)
-      sequenceNode :: convertDocumentToNode(restEvents)
-    }
-    case SequenceEnd :: tail => convertDocumentToNode(tail)
-    case Nil => Nil
-  }
-//
-//  private def convertToNodesAbstract(events: List[YamlEvent], start: YamlEvent, end: YamlEvent, node: Node): events match {
-//      case start :: tail => convertToNodesAbstract(tail, )
-//  }
-
-
-  private def convertToNodes(events: List[YamlEvent], node: RootNode): Node = events match {
-    case StreamStart :: tail => convertToNodes(tail, node) // TODO - add representation in node structure
+  private def convertToNodes(events: List[YamlEvent], node: Node, ctx: NodeCtx): Node = events match {
+    case StreamStart :: tail => convertToNodes(tail, node, ctx.withEvents(StreamStart))
+    case StreamEnd :: tail => convertToNodes(tail, node, ctx.closeBlock(StreamEnd))
     case DocumentStart :: tail => {
       val (documentEvents, restEvents) = tail.span( _ != DocumentEnd)
-      val documentNode = convertDocumentToNode(documentEvents)
-      convertToNodes(restEvents, node.appendAllChild(documentNode))
+      val documentNode = convertToNodes(documentEvents, node, ctx)
+      convertToNodes(restEvents, documentNode, ctx.withEvents(DocumentStart))
     }
-    case DocumentEnd :: tail => convertToNodes(tail, node)
-    case StreamEnd :: tail => convertToNodes(tail, node) // TODO - add representation in node structure
-    case Nil => node
+    case DocumentEnd :: tail => convertToNodes(tail, node, ctx.closeBlock(DocumentEnd))
+    case (SequenceStart :: tail) => {
+      val (sequenceEvents, restEvents) = tail.span( _ != SequenceEnd)
+      val sequenceNode = convertToNodes(sequenceEvents, NodeSequence.empty, ctx.withEvents(SequenceStart))
+      convertToNodes(restEvents, node.appendChild(sequenceNode), ctx)
+    }
+    case SequenceEnd :: tail => convertToNodes(tail, node, ctx.closeBlock(SequenceEnd))
+    case (MappingStart :: tail) => {
+      val (mappingEvents, restEvents) = tail.span( _ != MappingEnd)
+      val mappingNode = convertToNodes(mappingEvents, NodeMapping.empty, ctx.withEvents(MappingStart))
+      convertToNodes(restEvents, node.appendChild(mappingNode), ctx.withEvents(MappingStart))
+    }
+    case MappingEnd :: tail => convertToNodes(tail, node, ctx.closeBlock(MappingEnd))
+    case Scalar(key) :: Scalar(value) :: tail =>
+      convertToNodes(tail, node.appendChild(NodeMappingElement(ScalarNode(key),ScalarNode(value))), ctx)
+    case _ => node
   }
 
-  override def fromEvents(events: List[YamlEvent]): Node = convertToNodes(events, RootNode.empty)
+  override def fromEvents(events: List[YamlEvent]): Node = convertToNodes(events, RootNode.empty, NodeCtx.empty)
