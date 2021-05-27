@@ -18,14 +18,14 @@ sealed trait Document extends YamlEvent
 case object DocumentStart extends Document
 case object DocumentEnd extends Document
 
-sealed trait Node extends YamlEvent
+sealed trait NodeParser extends YamlEvent
 //  case object Alias extends Node
-case class Scalar(value: String) extends Node
+case class Scalar(value: String) extends NodeParser
 
-//  sealed trait Sequence extends Node
-//  case object SequenceStart extends Sequence
-//  case object SequenceEnd extends Sequence
+sealed trait Sequence extends YamlEvent
+case object SequenceStart extends Sequence
+case object SequenceEnd extends Sequence
 
-sealed trait Mapping extends Node
+sealed trait Mapping extends NodeParser
 case object MappingStart extends Mapping
 case object MappingEnd extends Mapping

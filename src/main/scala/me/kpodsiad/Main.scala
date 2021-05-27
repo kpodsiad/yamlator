@@ -1,5 +1,6 @@
 package me.kpodsiad
 
+import me.kpodsiad.load.graph.NodeTransformer
 import me.kpodsiad.load.parser._
 
 import scala.annotation.tailrec
@@ -24,6 +25,9 @@ object Main extends App {
     val (event, newCtx) = ParserImpl.getNextEvent(in, ctx)
     if event != StreamEnd then renderEvents(in, newCtx, acc :+ event ) else acc :+ event
 
-  val events = renderEvents(StringYamlReader(yaml), ParserCtx(ParseStreamStart), Nil)
+  val events = renderEvents(StringYamlReader(yaml), ParserCtx(ParseStreamStart, ParseStreamStart), Nil)
   events.foreach(println)
+
+  val node = NodeTransformer.fromEvents(events)
+  println(node)
 }

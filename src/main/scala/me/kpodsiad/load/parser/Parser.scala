@@ -3,6 +3,7 @@ package me.kpodsiad.load.parser
 import me.kpodsiad.YamlReader
 
 case class ParserCtx(
+                      current: ParserState,
   state: ParserState
 )
 
@@ -28,6 +29,8 @@ case object ParseDocumentStart extends ParserState
 case object ParseDocumentEnd extends ParserState
 case object ParseNode extends ParserState
 case object ParseMapping extends ParserState
+case object ParseSequenceStart extends ParserState
+case object ParseSequenceEnd extends ParserState
 case object ParseFirstKey extends ParserState
 case object ParseKey extends ParserState
 case object ParseValue extends ParserState

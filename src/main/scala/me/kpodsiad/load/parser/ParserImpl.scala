@@ -11,11 +11,16 @@ object ParserImpl extends Parser :
       case ParseStreamEnd => (StreamEnd, ctx.copy(state = EndState))
       case ParseDocumentStart => (DocumentStart, ctx.copy(state = ParseNode))
       case ParseDocumentEnd => (DocumentEnd, ctx.copy(state = ParseStreamEnd))
+      case ParseSequenceEnd => (SequenceEnd, ctx.copy(state = ParseDocumentEnd))
       case ParseNode if !in.hasNext => getNextEvent(in, ctx.copy(state = ParseDocumentEnd))
       case ParseNode if in.peek != '-' => (MappingStart, ctx.copy(state = ParseFirstKey))
       case ParseNode if in.peek == '-' => {
         in.skip()
-        (MappingStart, ctx.copy(state = ParseFirstKey))
+        if ( ctx.current != ParseSequenceStart) {
+          (SequenceStart, ctx.copy(state = ParseNode, current = ParseSequenceStart))
+        } else {
+          getNextEvent(in, ctx)
+        }
       }
       case ParseFirstKey =>
         (parseScalar(in), ctx.copy(state = ParseValue))
@@ -27,7 +32,7 @@ object ParserImpl extends Parser :
       case ParseKey =>
         if in.peek == '-' then   (MappingEnd, ctx.copy(state = ParseNode))
         else if in.hasNext then (parseScalar(in), ctx.copy(state = ParseValue))
-        else  (MappingEnd, ctx.copy(state = ParseNode))
+        else  (MappingEnd, ctx.copy(state = ParseSequenceEnd))
 
       case _ => ???
     }
