@@ -1,15 +1,16 @@
 package me.kpodsiad
 
+import me.kpodsiad.load.composer.Composer
 import me.kpodsiad.load.graph.NodeTransformer
+import me.kpodsiad.load.graph.RootNode
 import me.kpodsiad.load.parser._
 
 import scala.annotation.tailrec
 import scala.deriving.Mirror
 
 object Main extends App {
-  case class Person(name: String, hr: Int, avg: Double)
-
-  val yaml =
+  final case class Person(name: String, hr: Int, avg: Double) derives Composer
+  val yamlSequence =
     """-
       |  name: Mark McGwire
       |  hr:   65
@@ -25,9 +26,10 @@ object Main extends App {
     val (event, newCtx) = ParserImpl.getNextEvent(in, ctx)
     if event != StreamEnd then renderEvents(in, newCtx, acc :+ event ) else acc :+ event
 
-  val events = renderEvents(StringYamlReader(yaml), ParserCtx(ParseStreamStart, ParseStreamStart), Nil)
+  val events = renderEvents(StringYamlReader(yamlSequence), ParserCtx(ParseStreamStart, ParseStreamStart), Nil)
   events.foreach(println)
-
-  val node = NodeTransformer.fromEvents(events)
+  val node = NodeTransformer.fromEvents(events).asInstanceOf[RootNode]
   println(node)
+  val result = summon[Composer[List[Person]]].compose(node.nodes.head)
+  println(result)
 }

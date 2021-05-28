@@ -1,6 +1,7 @@
 package me.kpodsiad.load.parser
 
 import me.kpodsiad.YamlReader
+import scala.annotation.tailrec
 
 object ParserImpl extends Parser :
   override def getNextEvent(in: YamlReader, ctx: ParserCtx): (YamlEvent, ParserCtx) = {
@@ -16,7 +17,7 @@ object ParserImpl extends Parser :
       case ParseNode if in.peek != '-' => (MappingStart, ctx.copy(state = ParseFirstKey))
       case ParseNode if in.peek == '-' => {
         in.skip()
-        if ( ctx.current != ParseSequenceStart) {
+        if (ctx.current != ParseSequenceStart) {
           (SequenceStart, ctx.copy(state = ParseNode, current = ParseSequenceStart))
         } else {
           getNextEvent(in, ctx)
@@ -30,9 +31,9 @@ object ParserImpl extends Parser :
         (parseScalar(in), ctx.copy(state = ParseKey))
 
       case ParseKey =>
-        if in.peek == '-' then   (MappingEnd, ctx.copy(state = ParseNode))
+        if !in.hasCurrent || in.peek == '-' then (MappingEnd, ctx.copy(state = ParseNode))
         else if in.hasNext then (parseScalar(in), ctx.copy(state = ParseValue))
-        else  (MappingEnd, ctx.copy(state = ParseSequenceEnd))
+        else (MappingEnd, ctx.copy(state = ParseSequenceEnd))
 
       case _ => ???
     }
@@ -45,13 +46,14 @@ object ParserImpl extends Parser :
 
   private def parseString(in: YamlReader): String = {
     val sb = new StringBuilder
-    while ( {
+    @tailrec
+    def read(): String = {
       val c = in.peek
-      c != ':' && c != '\n' && c != '#'
-    }) {
-      sb.append(in.read())
+      val isValidChar = c != ':' && c != '\n' && c != '#'
+      if isValidChar then sb.append(in.read())
+      if !isValidChar || !in.hasCurrent then sb.result() else read()
     }
-    sb.result()
+    read()
   }
 
   private def skipUntilNextToken(in: YamlReader): Unit =

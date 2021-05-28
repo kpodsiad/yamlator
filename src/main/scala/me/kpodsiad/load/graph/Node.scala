@@ -16,7 +16,7 @@ case object EmptyNode extends Node {
 }
 
 // scalar
-case class ScalarNode(value: Any) extends Node {
+case class ScalarNode(value: String) extends Node {
   def appendChild(value: Node) = sys.error("Forbidden operation")
 }
 
