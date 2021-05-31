@@ -9,24 +9,24 @@ import scala.compiletime._
 import scala.deriving.Mirror
 
 trait YamlWriter[T] {
-   def toYaml(obj: T): String
+   def toYaml(obj: T, indent: Int = 0): String
 }
 
 object YamlWriter:
 
   given YamlWriter[Int] with
-    override def toYaml(obj: Int): String = obj.toString
+    override def toYaml(obj: Int, indent: Int = 0): String = obj.toString
 
   given YamlWriter[String] with
-    override def toYaml(obj: String): String = obj.toString
+    override def toYaml(obj: String, indent: Int = 0): String = obj.toString
 
   given YamlWriter[Double] with
-    override def toYaml(obj: Double): String = obj.toString
+    override def toYaml(obj: Double, indent: Int = 0): String = obj.toString
 
   given seqWriter[T](using writer: YamlWriter[T]): YamlWriter[List[T]] with
-    override def toYaml(elements: List[T]): String = {
-      val values = elements.map(x => writer.toYaml(x))
-      values.mkString("-\n","-\n", "\n")
+    override def toYaml(elements: List[T], indent: Int = 0): String = {
+      val values = elements.map(x => writer.toYaml(x, indent + 1))
+      values.mkString("-\n","\n-\n", "\n")
     }
 
 
@@ -38,12 +38,12 @@ object YamlWriter:
     inline m match {
       case p: Mirror.ProductOf[T] =>
         new YamlWriter[T] {
-          override def toYaml(obj: T): String = {
+          override def toYaml(obj: T, indent: Int = 0): String = {
             val products = iterator(obj)
             val values = elemLabels.zip(products).zip(fromWriterElems).map { case ((label, value), yamlWriter) =>
-              s"$label: ${yamlWriter.asInstanceOf[YamlWriter[Any]].toYaml(value)}"
+              s"${" ".repeat(indent*4)}$label: ${yamlWriter.asInstanceOf[YamlWriter[Any]].toYaml(value)}"
             }
-            values.mkString("  ", "\n  ","\n")
+            values.mkString("\n")
           }
         }
       case _ =>  sys.error(s"Can not parse ${m.getClass.getSimpleName} class")

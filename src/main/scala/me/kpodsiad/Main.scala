@@ -35,10 +35,10 @@ object Main extends App {
   println(result)
   val personToYaml = Person(name = "Sammy Sosa", hr = 63, avg = 0.288)
   val personToYamlMark = Person(name = "Mark McGwire", hr = 65, avg = 0.278)
-  println(s"peron to yaml - ${personToYaml.toString}")
+  println(s"\nperon to yaml - ${personToYaml.toString}\n")
   val yamlPerson = summon[YamlWriter[Person]].toYaml(personToYaml)
   println(yamlPerson)
-  println(s"peron to yaml - ${List(personToYaml, personToYaml).toString}")
+  println(s"\nperon to yaml - ${List(personToYaml, personToYaml).toString}\n")
   val yamlListPerson = summon[YamlWriter[List[Person]]].toYaml(List(personToYaml, personToYaml))
   println(yamlListPerson)
 }
