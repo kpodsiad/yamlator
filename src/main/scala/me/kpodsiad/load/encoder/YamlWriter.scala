@@ -9,23 +9,25 @@ import scala.compiletime._
 import scala.deriving.Mirror
 
 trait YamlWriter[T] {
-   def toYaml(obj: T, indent: Int = 0): String
+   def toYaml(obj: T, indent: Int = 0, base: Int = 2): String
 }
 
 object YamlWriter:
-
+  extension [T: YamlWriter](t: T)
+    def toYaml(indent: Int = 0, base: Int = 2): String = summon[YamlWriter[T]].toYaml(t)
+    
   given YamlWriter[Int] with
-    override def toYaml(obj: Int, indent: Int = 0): String = obj.toString
+    override def toYaml(obj: Int, indent: Int = 0, base: Int = 2): String = obj.toString
 
   given YamlWriter[String] with
-    override def toYaml(obj: String, indent: Int = 0): String = obj.toString
+    override def toYaml(obj: String, indent: Int = 0, base: Int = 2): String = obj.toString
 
   given YamlWriter[Double] with
-    override def toYaml(obj: Double, indent: Int = 0): String = obj.toString
+    override def toYaml(obj: Double, indent: Int = 0, base: Int = 2): String = obj.toString
 
   given seqWriter[T](using writer: YamlWriter[T]): YamlWriter[List[T]] with
-    override def toYaml(elements: List[T], indent: Int = 0): String = {
-      val values = elements.map(x => writer.toYaml(x, indent + 1))
+    override def toYaml(elements: List[T], indent: Int = 0, base: Int = 2): String = {
+      val values = elements.map(x => writer.toYaml(x, indent + 1, base))
       values.mkString("-\n","\n-\n", "\n")
     }
 
@@ -38,10 +40,10 @@ object YamlWriter:
     inline m match {
       case p: Mirror.ProductOf[T] =>
         new YamlWriter[T] {
-          override def toYaml(obj: T, indent: Int = 0): String = {
+          override def toYaml(obj: T, indent: Int = 0, base: Int = 2): String = {
             val products = iterator(obj)
             val values = elemLabels.zip(products).zip(fromWriterElems).map { case ((label, value), yamlWriter) =>
-              s"${" ".repeat(indent*4)}$label: ${yamlWriter.asInstanceOf[YamlWriter[Any]].toYaml(value)}"
+              s"${" ".repeat(indent*base)}$label: ${yamlWriter.asInstanceOf[YamlWriter[Any]].toYaml(value, indent, base)}"
             }
             values.mkString("\n")
           }

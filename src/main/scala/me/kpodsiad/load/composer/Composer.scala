@@ -41,6 +41,9 @@ private object FromMap:
   }
 
 object Composer:
+  extension (node: Node)
+    def as[T: Composer] = summon[Composer[T]].compose(node)
+  
   given [T](using Composer[T]): Composer[List[T]] = new Composer[List[T]] {
     override def compose(node: Node): Either[List[ComposerError], List[T]] = {
       node match {

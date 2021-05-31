@@ -3,30 +3,22 @@ import me.kpodsiad.load.parser._
 import me.kpodsiad.{YamlReader, StringYamlReader}
 import me.kpodsiad.load.graph.{NodeTransformer, RootNode}
 import me.kpodsiad.load.composer.Composer
+import me.kpodsiad.load.composer.Composer.as
 import org.junit.Test
 import org.junit.Assert._
 
 import scala.annotation.tailrec
 
 class ComposerTests {
-  final case class Person(name: String, hr: Int, avg: Double) derives Composer
-  final case class Dog(name: String, owner: String, age: Int) derives Composer
-
-  @tailrec
-  final def getEvents(in: YamlReader, ctx: ParserCtx, acc: List[YamlEvent]): List[YamlEvent] =
-    val (event, newCtx) = ParserImpl.getNextEvent(in, ctx)
-    if event != StreamEnd then getEvents(in, newCtx, acc :+ event ) else acc :+ event
-
-
   @Test def testYamlMapping(): Unit = {
     val yamlMapping =
       """|name: Mark McGwire
          |hr:   65
          |avg:  0.278""".stripMargin
 
-    val events = getEvents(StringYamlReader(yamlMapping), ParserCtx(ParseStreamStart, ParseStreamStart), Nil)
+    val events = ParserImpl.getEvents(StringYamlReader(yamlMapping))
     val node = NodeTransformer.fromEvents(events).asInstanceOf[RootNode]
-    val result = summon[Composer[Person]].compose(node.nodes.head)
+    val result = node.nodes.head.as[Person]
     assertEquals(result, Right(Person("Mark McGwire", 65, 0.278)))
   }
 
@@ -36,9 +28,9 @@ class ComposerTests {
          |owner: Marian
          |age:   13""".stripMargin
 
-    val events = getEvents(StringYamlReader(yamlMapping), ParserCtx(ParseStreamStart, ParseStreamStart), Nil)
+    val events = ParserImpl.getEvents(StringYamlReader(yamlMapping))
     val node = NodeTransformer.fromEvents(events).asInstanceOf[RootNode]
-    val result = summon[Composer[Dog]].compose(node.nodes.head)
+    val result = node.nodes.head.as[Dog]
     assertEquals(result, Right(Dog("Burek", "Marian", 13)))
   }
 
@@ -54,9 +46,9 @@ class ComposerTests {
         |  avg:  0.288
         |""".stripMargin
 
-    val events = getEvents(StringYamlReader(yamlSequence), ParserCtx(ParseStreamStart, ParseStreamStart), Nil)
+    val events = ParserImpl.getEvents(StringYamlReader(yamlSequence))
     val node = NodeTransformer.fromEvents(events).asInstanceOf[RootNode]
-    val result = summon[Composer[List[Person]]].compose(node.nodes.head)
+    val result = node.nodes.head.as[List[Person]]
     assertEquals(result, Right(List(Person("Mark McGwire", 65, 0.278), Person("Sammy Sosa", 63, 0.288))))
   }
 }

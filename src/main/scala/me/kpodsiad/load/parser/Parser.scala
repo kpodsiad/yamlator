@@ -3,12 +3,13 @@ package me.kpodsiad.load.parser
 import me.kpodsiad.YamlReader
 
 case class ParserCtx(
-                      current: ParserState,
+  current: ParserState,
   state: ParserState
 )
 
 trait Parser {
   def getNextEvent(in: YamlReader, ctx: ParserCtx): (YamlEvent, ParserCtx)
+  def getEvents(in: YamlReader): Seq[YamlEvent]
 }
 
 /** Valid sequence of events should obey following grammar so parser states should mirror that grammar

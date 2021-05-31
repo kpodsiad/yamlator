@@ -1,9 +1,19 @@
 package me.kpodsiad.load.parser
 
 import me.kpodsiad.YamlReader
+
 import scala.annotation.tailrec
 
-object ParserImpl extends Parser :
+object ParserImpl extends Parser:
+  override def getEvents(in: YamlReader): List[YamlEvent] = {
+      @tailrec
+      def loop(ctx: ParserCtx, acc: List[YamlEvent]): List[YamlEvent] = {
+        val (event, newCtx) = ParserImpl.getNextEvent(in, ctx)
+        if event != StreamEnd then loop(newCtx, acc :+ event ) else acc :+ event
+      }
+      loop(ParserCtx(ParseStreamStart, ParseStreamStart), Nil)
+  }
+
   override def getNextEvent(in: YamlReader, ctx: ParserCtx): (YamlEvent, ParserCtx) = {
     if in.hasNext then skipUntilNextToken(in)
     ctx.state match {
