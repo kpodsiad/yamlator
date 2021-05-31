@@ -1,15 +1,16 @@
 package me.kpodsiad
 
-import me.kpodsiad.load.composer.Composer
+import me.kpodsiad.load.composer.{Composer, ComposerError}
 import me.kpodsiad.load.graph.NodeTransformer
 import me.kpodsiad.load.graph.RootNode
 import me.kpodsiad.load.parser._
+import me.kpodsiad.load.encoder._
 
 import scala.annotation.tailrec
 import scala.deriving.Mirror
 
 object Main extends App {
-  final case class Person(name: String, hr: Int, avg: Double) derives Composer
+  final case class Person(name: String, hr: Int, avg: Double) derives Composer, YamlWriter
   val yamlSequence =
     """-
       |  name: Mark McGwire
@@ -30,6 +31,14 @@ object Main extends App {
   events.foreach(println)
   val node = NodeTransformer.fromEvents(events).asInstanceOf[RootNode]
   println(node)
-  val result = summon[Composer[List[Person]]].compose(node.nodes.head)
+  val result: Either[List[ComposerError], List[Person]] = summon[Composer[List[Person]]].compose(node.nodes.head)
   println(result)
+  val personToYaml = Person(name = "Sammy Sosa", hr = 63, avg = 0.288)
+  val personToYamlMark = Person(name = "Mark McGwire", hr = 65, avg = 0.278)
+  println(s"peron to yaml - ${personToYaml.toString}")
+  val yamlPerson = summon[YamlWriter[Person]].toYaml(personToYaml)
+  println(yamlPerson)
+  println(s"peron to yaml - ${List(personToYaml, personToYaml).toString}")
+  val yamlListPerson = summon[YamlWriter[List[Person]]].toYaml(List(personToYaml, personToYaml))
+  println(yamlListPerson)
 }
